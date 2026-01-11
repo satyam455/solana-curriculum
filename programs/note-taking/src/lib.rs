@@ -1,3 +1,7 @@
+// #![allow(clippy::result_large_err)]
+
+//Build a complete note-taking program with CRUD operations
+
 use anchor_lang::prelude::*;
 
 declare_id!("GnoaMeqDyteiABnVA6h9KXXPPTAbimFCBNyy9aS8LWYn");
@@ -6,16 +10,16 @@ declare_id!("GnoaMeqDyteiABnVA6h9KXXPPTAbimFCBNyy9aS8LWYn");
 pub mod note_taking {
     use super::*;
 
-    pub fn initialize_data(ctx: Context<InitializeData>, title: String, data: String) -> Result<()> {
+    pub fn initialize_data(ctx: Context<InitializeData>, title: String, message: String) -> Result<()> {
         let data = &mut ctx.accounts.data;
         
         data.owner = ctx.accounts.owner.key();
         data.title = title;
-        data.data = data;
+        data.message = message;
         Ok(())
     }
 
-    pub fn update_data(ctx: Context<Initialize>, title: String, data: String) -> Result<()> {
+    pub fn update_data(ctx: Context<UpdateData>, title: String, message: String) -> Result<()> {
 
         let data = &mut ctx.accounts.data;
 
@@ -26,7 +30,7 @@ pub mod note_taking {
 
     }
 
-    pub fn delete_data(ctx: Context<Initialize>) -> Result<()> {
+    pub fn delete_data(ctx: Context<DeleteData>) -> Result<()> {
         Ok(())
 
     }
@@ -61,10 +65,10 @@ pub struct UpdateData<'info> {
         realloc::payer = owner,
         realloc::zero = true, 
     )]
-    pub data: Accounts<'info, Data>,
+    pub data: Account<'info, Data>,
 
-    #[accounts(mut)]
-    pub owner: payer<'info>,
+    #[account(mut)]
+    pub owner: Signer<'info>,
 
     pub system_program: Program<'info, System>,
 }
@@ -78,10 +82,10 @@ pub struct DeleteData<'info> {
         bump,
         close = owner,
     )]
-    pub data: Accounts<'info, Data>,
+    pub data: Account<'info, Data>,
 
-    #[accounts(mut)]
-    pub owner: payer<'info>,
+    #[account(mut)]
+    pub owner: Signer<'info>,
 
     pub system_program: Program<'info, System>,
 }
@@ -89,7 +93,7 @@ pub struct DeleteData<'info> {
 #[account]
 #[derive(InitSpace)]
 pub struct Data {
-    pub owner: PubKey,
+    pub owner: Pubkey,
     #[max_len(50)]
     pub title: String,
     #[max_len(250)]
