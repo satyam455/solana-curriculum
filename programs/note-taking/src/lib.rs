@@ -41,7 +41,7 @@ pub mod note_taking {
 pub struct InitializeData<'info> {
     #[account(
         init,
-        seeds = [title.as_bytes(), owner.key().as_ref()],
+        seeds = [b"data", owner.key().as_ref()],
         bump,
         space = Data::INIT_SPACE,
         payer = owner
@@ -59,7 +59,7 @@ pub struct InitializeData<'info> {
 pub struct UpdateData<'info> {
     #[account(
         mut,
-        seeds = [title.as_bytes(), owner.key().as_ref()],
+        seeds = [b"data", owner.key().as_ref()],
         bump,
         realloc = 8 + Data::INIT_SPACE,
         realloc::payer = owner,
@@ -78,7 +78,7 @@ pub struct UpdateData<'info> {
 pub struct DeleteData<'info> {
     #[account(
         mut,
-        seeds = [title.as_bytes(), owner.key().as_ref()],
+        seeds = [b"data", owner.key().as_ref()],
         bump,
         close = owner,
     )]
@@ -101,9 +101,5 @@ pub struct Data {
 
 }
 
-// #[derive(Accounts)]
-// pub struct Updatedata<'info> {
-
-// }
 
 
