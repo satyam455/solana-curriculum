@@ -8,51 +8,47 @@ declare_id!("9auMpKHJfh7CcagQeg4wWoqJSdQHbjNAfHttLhZp9FGK");
 pub mod book_record {
     use super::*;
 
-    pub fn initialize(
-        ctx: Context<InitializeRecord>, /*, username: String, bookname: String, email: String, mobile: u8, address: String */
+    pub fn initialize_record(
+        ctx: Context<InitializeRecord>, username: String, bookname: String, email: String, address: String, book_id: u64, borrow_type: BorrowType
     ) -> Result<()> {
-        /*
-        pub library = ctx.accounts.library;
+       
+        let library_ = &mut ctx.accounts.library;
 
         let clock = Clock::get()?;
 
-        library.owner = ctx.accounts.owner.key();
+        library_.owner = ctx.accounts.owner.key();
+        library_.book_id = book_id;
+        library_.username = username;
+        library_.bookname = bookname;
+        library_.borrowed_at = clock.unix_timestamp;
+        library_.returned_at = None;
 
-        library.username = username;
-        library.bookname = bookname;
-
-        library.contact = UserContact {
-        taken: true,
-        email: email,
-        mobile: mobile,
-        address: address,
+        library_.contact = UserContact {
+            borrowtype: borrow_type,
+            email: email,
+            address: address,
         };
+    
+        Ok(())
+    }
 
-        if library.contact.taken == true {
+    pub fn return_book(ctx: Context<ReturnBook>) -> Result<()> {
+        let record = &mut ctx.accounts.record;
+        let clock = Clock::get()?;
 
-        pay some sol to library program and also add the logic when the book get returned it get back to the user
-        >> cpi will gonna implement here which like 0.001SOL from user to library when a book is taken and will return back when the user returned the book
-
-
-        }
-
-
-
-
-                 */
+        record.returned_at = Some(clock.unix_timestamp);
         Ok(())
     }
 }
 
 #[derive(Accounts)]
-#[instruction(username: String,bookname: String)]
-/*#[instruction(email:String, mobile: u8, address: String)] */
+#[instruction(book_id: u64)] //taking book_id as an unique for pda books id will be always unique for every book
 pub struct InitializeRecord<'info> {
     #[account(
         init,
         payer = owner,
         space = 8 + BookRecords::INIT_SPACE,
-        seeds = [b"library", owner.key().as_ref()],
+        seeds = [b"library", owner.key().as_ref(), &book_id.to_le_bytes()],
         bump,
     )]
     pub library: Account<'info, BookRecords>,
@@ -63,27 +59,56 @@ pub struct InitializeRecord<'info> {
     pub system_program: Program<'info, System>,
 }
 
+
 impl BookRecords {
     pub const MAX_USERNAME: usize = 50;
     pub const MAX_BOOK_NAME: usize = 100;
+    pub const MAX_EMAIL: usize = 100;
+    pub const MAX_ADDRESS: usize = 100;
 
-    pub const INIT_SPACE: usize =
-        32 + 4 + Self::MAX_USERNAME + 4 + Self::MAX_BOOK_NAME + 1 + 4 + 8 + 4;
+
+   pub const CONTACT_SPACE: usize = 
+   1 +
+   4 + Self::MAX_EMAIL +
+   4 + Self::MAX_ADDRESS;
+
+   
+       pub const INIT_SPACE: usize =
+        32 + 8 + 4 + Self::MAX_USERNAME + 4 + Self::MAX_BOOK_NAME + 1 + 4 + 8 + 4;
+}
+
+#[derive(Accounts)]
+pub struct ReturnBook<'info> {
+    #[account(
+        mut,
+        has_one = owner      
+    )]
+    pub record: Account<'info, BookRecords>,
+    pub owner: Signer<'info>,
+}
+
+#[derive(AnchorSerialize, AnchorDeserialize, Clone)]
+pub enum BorrowType {
+    InLibrary,
+    TakeHome,
 }
 
 #[derive(AnchorSerialize, AnchorDeserialize, Clone)]
 pub struct UserContact {
-    pub taken: bool,
+    pub borrowtype: BorrowType,
     pub email: String,
-    pub mobile: u8,
     pub address: String,
 }
 
 #[account]
 pub struct BookRecords {
+    pub owner: Pubkey,
+    pub book_id: u64,
     pub username: String,
     pub bookname: String,
     pub contact: UserContact,
+    pub borrowed_at: i64,
+    pub returned_at: Option<i64>,
     pub bump: u8,
 }
 
